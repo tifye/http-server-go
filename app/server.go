@@ -21,7 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	resp := []byte(`HTTP/1.1 200 OK\r\n\r\n`)
+	resp := []byte("HTTP/1.1 200 OK\r\n\r\n")
 	_, err = connection.Write(resp)
 	if err != nil {
 		fmt.Println("Failed to write to connection")
