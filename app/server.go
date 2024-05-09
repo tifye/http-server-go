@@ -37,6 +37,20 @@ func main() {
 		buf.WriteString(text)
 		buf.WriteTo(res)
 	})
+	router.GET("/user-agent", func(req *Request, res ResponseWriter) {
+		userAgent, ok := req.headers["User-Agent"]
+		if !ok {
+			fmt.Println("Failed to find value for param 'text'")
+			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+			return
+		}
+		buf := bytes.NewBufferString("HTTP/1.1 200 OK\r\n")
+		buf.WriteString("Content-Type: text/plain\r\n")
+		buf.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(userAgent)))
+		buf.WriteString("\r\n")
+		buf.WriteString(userAgent)
+		buf.WriteTo(res)
+	})
 
 	listener, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
