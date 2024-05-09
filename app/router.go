@@ -30,7 +30,7 @@ func (router Router) addHandler(method string, path string, handler Handler) {
 
 	methodTree, ok := router.methodTrees[method]
 	if !ok {
-		root := newRouteNode("/", "", false, nil)
+		root := newRouteNode("", "", false, nil)
 		methodTree = &root
 		router.methodTrees[method] = &root
 	}
@@ -62,8 +62,8 @@ func (router Router) GET(path string, handler Handler) {
 }
 
 func extractRouteParams(handlerPath string, requestPath string) map[string]string {
-	handlerParts := strings.Split(handlerPath, "/")
-	requestParts := strings.Split(requestPath, "/")
+	handlerParts := strings.Split(strings.TrimPrefix(handlerPath, "/"), "/")
+	requestParts := strings.Split(strings.TrimPrefix(requestPath, "/"), "/")
 	if len(handlerParts) != len(requestParts) {
 		panic(fmt.Sprintf("Handler/Request mismatch handler='%s' request='%s'", handlerPath, requestPath))
 	}
