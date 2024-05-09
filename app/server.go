@@ -30,7 +30,7 @@ func main() {
 			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
 			return
 		}
-		buf := bytes.NewBufferString("HTTP/1.1 200 OK\r\n\r\n")
+		buf := bytes.NewBufferString("HTTP/1.1 200 OK\r\n")
 		buf.WriteString("Content-Type: text/plain\r\n")
 		buf.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(text)))
 		buf.WriteString("\r\n")

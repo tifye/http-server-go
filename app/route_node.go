@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -23,8 +22,6 @@ func newRouteNode(path string, segment string, isWildcard bool, handler Handler)
 }
 
 func (node *RouteNode) match(path string) *RouteNode {
-	fmt.Printf("Calling node.match on '%s' with '%s'\n", node.path, path)
-
 	path = strings.TrimPrefix(path, "/")
 	if path == "" {
 		if node.handler != nil {
