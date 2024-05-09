@@ -44,7 +44,7 @@ func parseRequest(r io.Reader) (Request, error) {
 			return Request{}, fmt.Errorf("Malformed header '%b'", headerLine)
 		}
 		key, value := headerParts[0], headerParts[1]
-		headers[string(key)] = string(value)
+		headers[string(key)] = string(bytes.Trim(value, " "))
 	}
 
 	return Request{
