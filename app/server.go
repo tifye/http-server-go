@@ -27,9 +27,9 @@ func main() {
 		fmt.Println("Failed to write to connection")
 		os.Exit(1)
 	}
-	err = connection.Close()
-	if err != nil {
-		fmt.Println("Failed to close connection")
-		os.Exit(1)
-	}
+	// err = connection.Close()
+	// if err != nil {
+	// 	fmt.Println("Failed to close connection")
+	// 	os.Exit(1)
+	// }
 }
