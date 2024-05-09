@@ -30,7 +30,7 @@ func (router Router) addHandler(method string, path string, handler Handler) {
 
 	methodTree, ok := router.methodTrees[method]
 	if !ok {
-		root := newRouteNode("", "", false, nil)
+		root := newRouteNode("/", "", false, nil)
 		methodTree = &root
 		router.methodTrees[method] = &root
 	}
