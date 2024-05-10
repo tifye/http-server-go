@@ -141,7 +141,14 @@ func handleEchoText() Handler {
 		res.Headers["Content-Length"] = fmt.Sprintf("%d", n)
 		res.Headers["Content-Encoding"] = "gzip"
 		res.Status(http.StatusOK)
-		encodedBuf.WriteTo(res)
+		compressedData, err := io.ReadAll(&encodedBuf)
+		if err != nil {
+			res.Status(http.StatusInternalServerError)
+			res.Write([]byte("Failed to compress content"))
+			return
+		}
+		fmt.Println(string(compressedData))
+		res.Write(compressedData)
 	}
 }
 
