@@ -62,7 +62,6 @@ func serve(ctx context.Context, router *Router, conn net.Conn) {
 
 	request, err := parseRequest(conn)
 	if err != nil {
-		fmt.Printf("Failed to parse request got %s\n", err)
 		return
 	}
 

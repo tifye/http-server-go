@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -114,17 +116,32 @@ func handleEchoText() Handler {
 			return
 		}
 
+		var allowGzip bool
 		for _, encoding := range encodings {
 			if encoding == "gzip" {
-				res.Status(http.StatusOK)
-				res.Headers["Content-Encoding"] = "gzip"
-				res.Write([]byte(text))
-				return
+				allowGzip = true
+				break
 			}
 		}
 
+		if !allowGzip {
+			res.Status(http.StatusOK)
+			res.Write([]byte(text))
+			return
+		}
+
+		var encodedBuf bytes.Buffer
+		gzipWriter := gzip.NewWriter(&encodedBuf)
+		n, err := gzipWriter.Write([]byte(text))
+		if err != nil {
+			res.Status(http.StatusInternalServerError)
+			res.Write([]byte("Failed to compress content"))
+			return
+		}
+		res.Headers["Content-Length"] = fmt.Sprintf("%d", n)
+		res.Headers["Content-Encoding"] = "gzip"
 		res.Status(http.StatusOK)
-		res.Write([]byte(text))
+		encodedBuf.WriteTo(res)
 	}
 }
 
