@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 )
 
 func setupRouter(config Config) *Router {
@@ -100,6 +101,25 @@ func handleEchoText() Handler {
 		res.Status(http.StatusOK)
 		res.Headers["Content-Type"] = "text/plain"
 		res.Headers["Content-Length"] = fmt.Sprintf("%d", len(text))
+
+		encodingsHeader, ok := req.headers["Accept-Encoding"]
+		if !ok {
+			res.Write([]byte(text))
+			return
+		}
+
+		encodings := strings.Split(encodingsHeader, ",")
+		if len(encodings) == 0 {
+			res.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if encodings[0] != "gzip" {
+			res.Write([]byte(text))
+			return
+		}
+
+		res.Headers["Content-Encoding"] = "gzip"
 		res.Write([]byte(text))
 	}
 }
