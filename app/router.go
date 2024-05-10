@@ -1,13 +1,65 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 )
 
-type ResponseWriter io.Writer
-type Handler func(*Request, ResponseWriter)
+type ResponseWriter struct {
+	Headers map[string]string
+	writer  io.WriteCloser
+	status  int
+}
+type Handler func(*Request, *ResponseWriter)
+
+func (r *ResponseWriter) Status(status int) {
+	if !isValidStatusCode(status) {
+		panic(fmt.Sprintf("Invalid http status code: %d", status))
+	}
+	r.status = status
+}
+
+func (r *ResponseWriter) WriteHeader(status int) (n int, err error) {
+	if !isValidStatusCode(r.status) {
+		r.Status(status)
+	}
+	return r.Write([]byte{})
+}
+
+func (r *ResponseWriter) Write(b []byte) (n int, err error) {
+	if r.status < 100 {
+		r.status = http.StatusOK
+	}
+	var buf bytes.Buffer
+	_, err = buf.WriteString(fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.status, http.StatusText(r.status)))
+	if err != nil {
+		return buf.Len(), err
+	}
+
+	for key, value := range r.Headers {
+		_, err = buf.WriteString(fmt.Sprintf("%s: %s\r\n", key, value))
+		if err != nil {
+			return buf.Len(), err
+		}
+	}
+
+	if _, err = buf.WriteString("\r\n"); err != nil {
+		return buf.Len(), err
+	}
+	if _, err = buf.Write(b); err != nil {
+		return buf.Len(), err
+	}
+
+	nb, err := buf.WriteTo(r.writer)
+	return int(nb), err
+}
+
+func isValidStatusCode(status int) bool {
+	return status >= 100 && status <= 599
+}
 
 type Router struct {
 	methodTrees     map[string]*RouteNode
@@ -17,7 +69,7 @@ type Router struct {
 func newRouter() Router {
 	return Router{
 		methodTrees: make(map[string]*RouteNode, 0),
-		notFoundHandler: func(req *Request, resp ResponseWriter) {
+		notFoundHandler: func(req *Request, resp *ResponseWriter) {
 			resp.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 		},
 	}

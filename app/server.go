@@ -72,5 +72,9 @@ func serve(ctx context.Context, router *Router, conn net.Conn) {
 		return
 	}
 
-	handler(request, conn)
+	response := &ResponseWriter{
+		Headers: make(map[string]string),
+		writer:  conn,
+	}
+	handler(request, response)
 }

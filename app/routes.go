@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,25 +23,25 @@ func setupRouter(config Config) *Router {
 }
 
 func handleRoot() Handler {
-	return func(req *Request, res ResponseWriter) {
-		res.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	return func(req *Request, res *ResponseWriter) {
+		res.WriteHeader(http.StatusOK)
 	}
 }
 
 func handleGetMeep() Handler {
-	return func(req *Request, res ResponseWriter) {
-		res.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	return func(req *Request, res *ResponseWriter) {
+		res.WriteHeader(http.StatusOK)
 	}
 }
 
 func handleDoubleWild() Handler {
-	return func(req *Request, res ResponseWriter) {
-		res.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	return func(req *Request, res *ResponseWriter) {
+		res.WriteHeader(http.StatusOK)
 	}
 }
 
 func handlePostFile(publicDir string) Handler {
-	return func(req *Request, res ResponseWriter) {
+	return func(req *Request, res *ResponseWriter) {
 		filename, _ := req.params["filename"]
 		fp := filepath.Join(publicDir, filename)
 
@@ -51,76 +51,71 @@ func handlePostFile(publicDir string) Handler {
 		_, err := io.ReadFull(req.body, contents)
 		if err != nil {
 			fmt.Printf("err reading request body %s\n", err)
-			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		err = os.WriteFile(fp, contents, 0644)
 		if err != nil {
 			fmt.Printf("err writing to file: %s", err)
-			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		res.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
+		res.WriteHeader(http.StatusCreated)
 	}
 }
 
 func handleGetFile(publicDir string) Handler {
-	return func(req *Request, res ResponseWriter) {
+	return func(req *Request, res *ResponseWriter) {
 		filename, _ := req.params["filename"]
 
 		fp := filepath.Join(publicDir, filename)
 		_, err := os.Stat(fp)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				res.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				res.WriteHeader(http.StatusNotFound)
 				return
 			}
-			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+			res.WriteHeader(http.StatusInternalServerError)
 		}
 
 		data, err := os.ReadFile(fp)
 		if err != nil {
-			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		buf := bytes.NewBufferString("HTTP/1.1 200 OK\r\n")
-		buf.WriteString("Content-Type: application/octet-stream\r\n")
-		buf.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(data)))
-		buf.WriteString("\r\n")
-		buf.Write(data)
-		buf.WriteTo(res)
+		res.Status(http.StatusOK)
+		res.Headers["Content-Type"] = "application/octet-stream"
+		res.Headers["Content-Length"] = fmt.Sprintf("%d", len(data))
+		res.Write(data)
 	}
 }
 
 func handleEchoText() Handler {
-	return func(req *Request, res ResponseWriter) {
+	return func(req *Request, res *ResponseWriter) {
 		text, _ := req.params["text"]
 
-		buf := bytes.NewBufferString("HTTP/1.1 200 OK\r\n")
-		buf.WriteString("Content-Type: text/plain\r\n")
-		buf.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(text)))
-		buf.WriteString("\r\n")
-		buf.WriteString(text)
-		buf.WriteTo(res)
+		res.Status(http.StatusOK)
+		res.Headers["Content-Type"] = "text/plain"
+		res.Headers["Content-Length"] = fmt.Sprintf("%d", len(text))
+		res.Write([]byte(text))
 	}
 }
 
 func handleEchoUserAgent() Handler {
-	return func(req *Request, res ResponseWriter) {
+	return func(req *Request, res *ResponseWriter) {
 		userAgent, ok := req.headers["User-Agent"]
 		if !ok {
 			fmt.Println("Failed to find value for param 'text'")
-			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+			res.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		buf := bytes.NewBufferString("HTTP/1.1 200 OK\r\n")
-		buf.WriteString("Content-Type: text/plain\r\n")
-		buf.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(userAgent)))
-		buf.WriteString("\r\n")
-		buf.WriteString(userAgent)
-		buf.WriteTo(res)
+
+		res.Status(http.StatusOK)
+		res.Headers["Content-Type"] = "text/plain"
+		res.Headers["Content-Length"] = fmt.Sprintf("%d", len(userAgent))
+		res.Write([]byte(userAgent))
 	}
 }
