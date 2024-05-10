@@ -132,21 +132,24 @@ func handleEchoText() Handler {
 
 		var encodedBuf bytes.Buffer
 		gzipWriter := gzip.NewWriter(&encodedBuf)
-		n, err := gzipWriter.Write([]byte(text))
+		defer gzipWriter.Close()
+		_, err := gzipWriter.Write([]byte(text))
 		if err != nil {
 			res.Status(http.StatusInternalServerError)
 			res.Write([]byte("Failed to compress content"))
 			return
 		}
-		res.Headers["Content-Length"] = fmt.Sprintf("%d", n)
-		res.Headers["Content-Encoding"] = "gzip"
-		res.Status(http.StatusOK)
+		_ = gzipWriter.Flush()
+
 		compressedData, err := io.ReadAll(&encodedBuf)
 		if err != nil {
 			res.Status(http.StatusInternalServerError)
 			res.Write([]byte("Failed to compress content"))
 			return
 		}
+		res.Headers["Content-Length"] = fmt.Sprintf("%d", len(compressedData))
+		res.Headers["Content-Encoding"] = "gzip"
+		res.Status(http.StatusOK)
 		fmt.Println(string(compressedData))
 		res.Write(compressedData)
 	}
