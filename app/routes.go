@@ -114,15 +114,16 @@ func handleEchoText() Handler {
 			return
 		}
 
-		if encodings[0] != "gzip" {
-			res.Status(http.StatusOK)
-			res.Write([]byte(text))
-			return
+		for _, encoding := range encodings {
+			if encoding == "gzip" {
+				res.Status(http.StatusOK)
+				res.Headers["Content-Encoding"] = "gzip"
+				res.Write([]byte(text))
+				return
+			}
 		}
 
 		res.Status(http.StatusOK)
-		res.Headers["Content-Encoding"] = "gzip"
-		fmt.Println("encoding", res.Headers["Content-Encoding"])
 		res.Write([]byte(text))
 	}
 }
