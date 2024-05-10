@@ -70,7 +70,7 @@ func newRouter() Router {
 	return Router{
 		methodTrees: make(map[string]*RouteNode, 0),
 		notFoundHandler: func(req *Request, resp *ResponseWriter) {
-			resp.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+			resp.WriteHeader(http.StatusNotFound)
 		},
 	}
 }
