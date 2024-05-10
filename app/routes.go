@@ -12,22 +12,38 @@ import (
 
 func setupRouter(config Config) *Router {
 	router := newRouter()
-	router.GET("/", func(req *Request, res ResponseWriter) {
+	router.GET("/", handleRoot())
+	router.GET("/meep", handleGetMeep())
+	router.GET("/:meep/mino/:mino", handleDoubleWild())
+	router.POST("/files/:filename", handlePostFile(config.publicDir))
+	router.GET("/files/:filename", handleGetFile(config.publicDir))
+	router.GET("/echo/:text", handleEchoText())
+	router.GET("/user-agent", handleEchoUserAgent())
+	return &router
+}
+
+func handleRoot() Handler {
+	return func(req *Request, res ResponseWriter) {
 		res.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	})
-	router.GET("/meep", func(req *Request, res ResponseWriter) {
+	}
+}
+
+func handleGetMeep() Handler {
+	return func(req *Request, res ResponseWriter) {
 		res.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	})
-	router.GET("/meep/mino", func(req *Request, res ResponseWriter) {
+	}
+}
+
+func handleDoubleWild() Handler {
+	return func(req *Request, res ResponseWriter) {
 		res.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	})
-	router.GET("/:meep/mino/:mino", func(req *Request, res ResponseWriter) {
-		res.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-	})
-	router.POST("/files/:filename", func(req *Request, res ResponseWriter) {
-		fmt.Println("meep")
+	}
+}
+
+func handlePostFile(publicDir string) Handler {
+	return func(req *Request, res ResponseWriter) {
 		filename, _ := req.params["filename"]
-		fp := filepath.Join(config.publicDir, filename)
+		fp := filepath.Join(publicDir, filename)
 
 		sizeStr, _ := req.headers["Content-Length"]
 		size, _ := strconv.Atoi(sizeStr)
@@ -47,11 +63,14 @@ func setupRouter(config Config) *Router {
 		}
 
 		res.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
-	})
-	router.GET("/files/:filename", func(req *Request, res ResponseWriter) {
+	}
+}
+
+func handleGetFile(publicDir string) Handler {
+	return func(req *Request, res ResponseWriter) {
 		filename, _ := req.params["filename"]
 
-		fp := filepath.Join(config.publicDir, filename)
+		fp := filepath.Join(publicDir, filename)
 		_, err := os.Stat(fp)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
@@ -73,8 +92,11 @@ func setupRouter(config Config) *Router {
 		buf.WriteString("\r\n")
 		buf.Write(data)
 		buf.WriteTo(res)
-	})
-	router.GET("/echo/:text", func(req *Request, res ResponseWriter) {
+	}
+}
+
+func handleEchoText() Handler {
+	return func(req *Request, res ResponseWriter) {
 		text, _ := req.params["text"]
 
 		buf := bytes.NewBufferString("HTTP/1.1 200 OK\r\n")
@@ -83,8 +105,11 @@ func setupRouter(config Config) *Router {
 		buf.WriteString("\r\n")
 		buf.WriteString(text)
 		buf.WriteTo(res)
-	})
-	router.GET("/user-agent", func(req *Request, res ResponseWriter) {
+	}
+}
+
+func handleEchoUserAgent() Handler {
+	return func(req *Request, res ResponseWriter) {
 		userAgent, ok := req.headers["User-Agent"]
 		if !ok {
 			fmt.Println("Failed to find value for param 'text'")
@@ -97,6 +122,5 @@ func setupRouter(config Config) *Router {
 		buf.WriteString("\r\n")
 		buf.WriteString(userAgent)
 		buf.WriteTo(res)
-	})
-	return &router
+	}
 }
