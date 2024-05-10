@@ -71,13 +71,13 @@ func serve(ctx context.Context, router *Router, conn net.Conn) {
 		os.Exit(1)
 	}
 
-	handler := router.findHandler(&request)
+	handler := router.findHandler(request)
 	if handler == nil {
 		fmt.Printf("No handler for %s %s", request.method, request.path)
 		return
 	}
 
-	handler(&request, conn)
+	handler(request, conn)
 }
 
 func setupRouter(config Config) *Router {
@@ -102,15 +102,12 @@ func setupRouter(config Config) *Router {
 		sizeStr, _ := req.headers["Content-Length"]
 		size, _ := strconv.Atoi(sizeStr)
 		contents := make([]byte, size)
-		n, err := io.ReadFull(req.body, contents)
+		_, err := io.ReadFull(req.body, contents)
 		if err != nil {
 			fmt.Printf("err reading request body %s\n", err)
 			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
 			return
 		}
-
-		fmt.Printf("content length is %s", sizeStr)
-		fmt.Printf("read %d bytes from body", n)
 
 		err = os.WriteFile(fp, contents, 0644)
 		if err != nil {
@@ -119,7 +116,6 @@ func setupRouter(config Config) *Router {
 			return
 		}
 
-		fmt.Println("mino")
 		res.Write([]byte("HTTP/1.1 201 Created\r\n\r\n"))
 	})
 	router.GET("/files/:filename", func(req *Request, res ResponseWriter) {

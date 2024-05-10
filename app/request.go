@@ -16,42 +16,48 @@ type Request struct {
 	body     io.Reader
 }
 
-func parseRequest(r io.Reader) (Request, error) {
-	scanner := bufio.NewScanner(r)
+func parseRequest(r io.Reader) (*Request, error) {
+	bodyReader := bufio.NewReader(r)
 
-	if didScanStatus := scanner.Scan(); !didScanStatus {
-		if err := scanner.Err(); err != nil {
-			return Request{}, fmt.Errorf("Failed to read request data %w", err)
-		}
-		return Request{}, fmt.Errorf("Empty request")
+	statusLine, err := bodyReader.ReadBytes('\n')
+	if err != nil {
+		return &Request{}, fmt.Errorf("Failed to read request data %w", err)
 	}
-	statusLine := scanner.Bytes()
+	if bytes.Equal(statusLine, []byte("")) {
+		return &Request{}, fmt.Errorf("Empty request")
+	}
+
 	statusParts := bytes.Split(statusLine, []byte(" "))
 	if len(statusParts) != 3 {
-		return Request{}, fmt.Errorf("Malformed status line '%b'", statusLine)
+		return &Request{}, fmt.Errorf("Malformed status line '%b'", statusLine)
 	}
 	method, path, protocol := statusParts[0], statusParts[1], statusParts[2]
 
 	headers := make(map[string]string, 0)
-	for scanner.Scan() {
-		headerLine := scanner.Bytes()
-		if len(headerLine) == 0 || bytes.Equal(headerLine, []byte{'\r', '\n'}) {
+	for {
+		headerLine, err := bodyReader.ReadBytes('\n')
+		if err != nil {
+			return &Request{}, fmt.Errorf("Failed to read request data %w", err)
+		}
+		headerLine = bytes.Trim(headerLine, "\r\n")
+
+		if len(headerLine) == 0 {
 			break
 		}
 
 		headerParts := bytes.SplitN(headerLine, []byte{':'}, 2)
 		if len(headerParts) != 2 {
-			return Request{}, fmt.Errorf("Malformed header '%b'", headerLine)
+			return &Request{}, fmt.Errorf("Malformed header '%s'", string(headerLine))
 		}
 		key, value := headerParts[0], headerParts[1]
 		headers[string(key)] = string(bytes.Trim(value, " "))
 	}
 
-	return Request{
+	return &Request{
 		method:   string(method),
 		path:     string(path),
 		protocol: string(protocol),
 		headers:  headers,
-		body:     r,
+		body:     bodyReader,
 	}, nil
 }
