@@ -61,6 +61,10 @@ func (router Router) GET(path string, handler Handler) {
 	router.addHandler("GET", path, handler)
 }
 
+func (router Router) POST(path string, handler Handler) {
+	router.addHandler("POST", path, handler)
+}
+
 func extractRouteParams(handlerPath string, requestPath string) map[string]string {
 	handlerParts := strings.Split(strings.TrimPrefix(handlerPath, "/"), "/")
 	requestParts := strings.Split(strings.TrimPrefix(requestPath, "/"), "/")
