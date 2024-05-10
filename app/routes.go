@@ -98,28 +98,31 @@ func handleEchoText() Handler {
 	return func(req *Request, res *ResponseWriter) {
 		text, _ := req.params["text"]
 
-		res.Status(http.StatusOK)
 		res.Headers["Content-Type"] = "text/plain"
 		res.Headers["Content-Length"] = fmt.Sprintf("%d", len(text))
 
 		encodingsHeader, ok := req.headers["Accept-Encoding"]
 		if !ok {
+			res.Status(http.StatusOK)
 			res.Write([]byte(text))
 			return
 		}
 
-		encodings := strings.Split(encodingsHeader, ",")
+		encodings := strings.Split(strings.ReplaceAll(encodingsHeader, " ", ""), ",")
 		if len(encodings) == 0 {
 			res.WriteHeader(http.StatusBadRequest)
 			return
 		}
 
 		if encodings[0] != "gzip" {
+			res.Status(http.StatusOK)
 			res.Write([]byte(text))
 			return
 		}
 
+		res.Status(http.StatusOK)
 		res.Headers["Content-Encoding"] = "gzip"
+		fmt.Println("encoding", res.Headers["Content-Encoding"])
 		res.Write([]byte(text))
 	}
 }
