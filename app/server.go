@@ -3,16 +3,30 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"os/signal"
+	"path/filepath"
 )
+
+type Config struct {
+	publicDir string
+}
 
 func main() {
 	fmt.Println("Logs from your program will appear here!")
 
-	router := setupRouter()
+	flags := flag.NewFlagSet("", 0)
+	publicDir := flags.String("directory", "", "")
+	flags.Parse(os.Args[1:])
+
+	config := Config{
+		publicDir: *publicDir,
+	}
+	router := setupRouter(config)
 
 	listener, err := net.Listen("tcp", "0.0.0.0:4221")
 	if err != nil {
@@ -60,14 +74,11 @@ func serve(ctx context.Context, router *Router, conn net.Conn) {
 		fmt.Printf("No handler for %s %s", request.method, request.path)
 		return
 	}
-	for key, value := range request.params {
-		fmt.Printf("%s: %s\n", key, value)
-	}
 
 	handler(&request, conn)
 }
 
-func setupRouter() *Router {
+func setupRouter(config Config) *Router {
 	router := newRouter()
 	router.GET("/", func(req *Request, res ResponseWriter) {
 		res.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
@@ -80,6 +91,36 @@ func setupRouter() *Router {
 	})
 	router.GET("/:meep/mino/:mino", func(req *Request, res ResponseWriter) {
 		res.Write([]byte("HTTP/1.1 202 OK\r\n\r\n"))
+	})
+	router.GET("/files/:filename", func(req *Request, res ResponseWriter) {
+		filename, ok := req.params["filename"]
+		if !ok {
+			fmt.Println("Failed to find value for param 'text'")
+			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+			return
+		}
+
+		fp := filepath.Join(config.publicDir, filename)
+		_, err := os.Stat(fp)
+		if err != nil {
+			if errors.Is(err, os.ErrNotExist) {
+				res.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+				return
+			}
+			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+		}
+
+		data, err := os.ReadFile(fp)
+		if err != nil {
+			res.Write([]byte("HTTP/1.1 500 Server Error\r\n\r\n"))
+		}
+
+		buf := bytes.NewBufferString("HTTP/1.1 200 OK\r\n")
+		buf.WriteString("Content-Type: application/octet-stream\r\n")
+		buf.WriteString(fmt.Sprintf("Content-Length: %d\r\n", len(data)))
+		buf.WriteString("\r\n")
+		buf.Write(data)
+		buf.WriteTo(res)
 	})
 	router.GET("/echo/:text", func(req *Request, res ResponseWriter) {
 		text, ok := req.params["text"]
