@@ -49,7 +49,7 @@ func (r *ResponseWriter) Write(b []byte) (n int, err error) {
 	if _, err = buf.WriteString("\r\n"); err != nil {
 		return buf.Len(), err
 	}
-	if _, err = buf.Write(b); err != nil {
+	if n, err = buf.Write(b); err != nil {
 		return buf.Len(), err
 	}
 
