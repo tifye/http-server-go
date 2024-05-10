@@ -144,17 +144,11 @@ func handleEchoText() Handler {
 			return
 		}
 
-		fmt.Println(len(text), buf.Len())
-
 		data := buf.Bytes()
 		res.Headers["Content-Encoding"] = "gzip"
 		res.Headers["Content-Length"] = fmt.Sprintf("%d", len(data))
 		res.Status(http.StatusOK)
-		n, err := res.Write(data)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(n)
+		res.Write(data)
 	}
 }
 
