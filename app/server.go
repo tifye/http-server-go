@@ -14,8 +14,6 @@ type Config struct {
 }
 
 func main() {
-	fmt.Println("Logs from your program will appear here!")
-
 	flags := flag.NewFlagSet("", 0)
 	publicDir := flags.String("directory", "", "")
 	flags.Parse(os.Args[1:])
